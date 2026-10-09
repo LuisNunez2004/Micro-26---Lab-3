@@ -146,3 +146,11 @@ void ADC_init(void)
 }
 
 /*==LEER ADC==*/
+uint16_t ADC_read(uint8_t canal)
+{
+  ADMUX =
+      (ADMUX & 0xF0)|
+      (canal & 0x0F);
+/*Iniciar conversion*/
+ADSRA |= (1 << ADSC);
+
