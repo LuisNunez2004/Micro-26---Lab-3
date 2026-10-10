@@ -153,4 +153,33 @@ uint16_t ADC_read(uint8_t canal)
       (canal & 0x0F);
 /*Iniciar conversion*/
 ADSRA |= (1 << ADSC);
+/*Esperar fin de conversion*/
+while (ADCSRA & (1 << ADSC));
+return ADC;
+}
+
+/*==PROMEDIO DE 10 LECTURAS==*/
+uint16_t ADC_promedio(void)
+{
+  uint32_t suma = 0;
+for (uint8_t i = 0; i < 10; i++)
+{
+suma += ADC_read(0);
+_delay_ms(10);
+}
+return (uint16_t)(suma / 10);
+}
+
+/*==UART==*/
+void USART_init(unsigned int ubrr)
+{
+  UBRR0H = (unsigned char)(ubrr >> 8);
+  UBRR0L = (unsigned char)ubrr;
+/*Habilitar transmisor*/
+UCSR0B = (1 << TXEN0);
+/*8 bits - sin paridad - 1 bit stop*/
+UCSR0C=
+      (1 << UCSZ01) |
+      (1 << UCSZ00);
+}
 
