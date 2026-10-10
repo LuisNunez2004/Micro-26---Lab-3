@@ -45,6 +45,8 @@ uint8_t rx_idx = 0;
 int16_t ultima_temp10 = 0;
 uint8_t hay_lectura = 0;
 
+char dat[40];
+uint16_t muestra = 0;
 
 void UART_init(unsigned int ubrr) {
     UBRR0H = (unsigned char)(ubrr >> 8);
@@ -438,6 +440,8 @@ int main(void) {
     while (1) {
         if (medir_flag) {
             medir_flag = 0;
+            muestra++;
+            dat[0] = '\0';
 
 #ifdef TEST_FORZADO
             temp10 = pruebas[idx];
@@ -457,6 +461,9 @@ int main(void) {
                 sprintf(buf, "T: %s%d.%d C | Punto medio: %d | %s | PWM: %d%%\r\n",
                         temp10 < 0 ? "-" : "", a / 10, a % 10,
                         punto_medio, Accion_texto(acc), duty_actual);
+                sprintf(dat, "D,%u,%s%d.%d,%d,%u,%u\r\n",
+                        muestra, temp10 < 0 ? "-" : "", a / 10, a % 10,
+                        punto_medio, acc, duty_actual);
             } else {
                 if (++errores_seguidos >= 3) {
                     Calefactor_set(0);
@@ -466,8 +473,9 @@ int main(void) {
                 LCD_actualizar(0, 0);
             }
 
-            if (estado_ui == EST_MONITOREO) {  
+            if (estado_ui == EST_MONITOREO) {
                 UART_sendString(buf);
+                UART_sendString(dat);  
             }
         }
 
