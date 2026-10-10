@@ -183,3 +183,267 @@ UCSR0C=
       (1 << UCSZ00);
 }
 
+/*==ENVIAR CARACTER UART==*/
+void USART_tx(char dato)
+{
+  while (!(UCSR0A & (1 << UDRE0));
+    UDR0 = dato;
+}
+
+/*==ENVIAR TEXTO UART==*/
+void USART_string(const char *texto)
+{
+  while (*texto)
+{
+USART_tx(*texto++);
+}
+}
+
+/*==SERVOMOTOR D9/PB1/OC1A==*/
+void Servo_init(void)
+{
+  /*D9 como salida*/
+  DDRB |= (1 << PB1);
+/*Timer1 Fast PWM modo 14 
+TOP = ICR1
+Prescaler = 8*/
+TCCR1A =
+  (1 << COM1A1) |
+  (1 << WGM11);
+TCCR1B=
+  (1 << WGM13) |
+  (1 << WGM12) |
+  (1 << CS11);
+/*Periodo de 20ms
+Frecuencia = 50Hz*/
+ICR1 = 39999;
+}
+/*==POSICIONAR SERVO
+0 grados -> 0,5ms
+90 grados -> 1,5ms
+180 grados -> 2,5ms ==*/
+void Servo_angle(uint8_t angulo)
+{
+  uint16_t pulso;
+
+  pulso =
+      1000 +
+      ((uint32_t)angulo * 4000 / 180);
+
+  OCR1A = pulso;
+}
+
+/*==MOSTRAR DATOS EN LCD==*/
+void LCD_mostrar(uint16_t adc,
+                 char *color,
+                 uint8_t angulo)
+{
+    char textoADC[8];
+    char textoAngulo[8];
+
+    itoa(adc, textoADC, 10);
+
+    itoa(angulo, textoAngulo, 10);
+
+
+    /* Primera linea */
+
+    twi_lcd_cmd(0x80);
+
+    twi_lcd_msg("ADC:");
+
+    twi_lcd_msg(textoADC);
+
+    twi_lcd_msg("          ");
+
+
+    /* Segunda linea */
+
+    twi_lcd_cmd(0xC0);
+
+    twi_lcd_msg(color);
+
+    twi_lcd_msg(" A:");
+
+    twi_lcd_msg(textoAngulo);
+
+    twi_lcd_msg("      ");
+}
+
+/*==PROGRAMA PRINCIPAL==*/
+int main(void)
+{
+  uint16_t adc;
+  uint8_t anfulo;
+  uint8_t rojo;
+  uint8_t verde;
+  uint8_t azul;
+  char color[12];
+  char textoADC[8];
+  char textoAngulo[8];
+
+/*INICIALIZAR ADC*/
+ADC_int();
+
+/*INICIALIZAR UART*/
+USART_init(MYUBRR);
+
+/*INICIALIZAR SERVOMOTOR*/
+Servo_init();
+/*Servo en posicion de espera*/
+Servo_angle(ANG_ESPERA);
+
+/*INICIALIZAR TIRA RGB*/
+WS_DDR |= (1 << WS_PIN);
+WS_PORT &= ~(1 << WS_PIN);
+/*Tira apagada*/
+WS_mostrar(0, 0, 0);
+
+/*INICIALIZAR LCD I2C*/
+twi_init();
+twi_lcd_init();
+_delay_ms(5);
+twi_lcd_clear();
+_delay_ms(5);
+/* Pantalla inicial */
+twi_lcd_cmd(0x80);
+twi_lcd_msg("PROBLEMA C");
+twi_lcd_cmd(0xC0);
+twi_lcd_msg("INICIANDO");
+
+ /* UART */
+USART_string("\r\n");
+USART_string("PROBLEMA C\r\n");
+USART_string("CLASIFICADOR DE COLOR\r\n");
+USART_string("----------------------\r\n");
+_delay_ms(1500);
+twi_lcd_clear();
+_delay_ms(5);
+
+/*==BUCLE PRINCIPAL==*/
+while (1)
+{
+/*Leer la fotocelda - se promedian 10 mediciones para mejorar estabilidad*/
+adc = ADC_promedio();
+
+/*SIN OBJETO
+Valor medio: ADC: 273-274
+Rango utilizado: 0 - 355
+Servo: 90 grados
+RGB apagado*/
+if (adc <= 355)
+{
+strcpy(color, "SIN OBJETO");
+angulo = ANG_ESPERA;
+rojo = 0;
+verde = 0;
+azul = 0;
+}
+
+/*VIOLETA
+Color 3
+ADC real: 436 - 441
+Rango: 356 - 490
+RGB: 75 , 0 , 130
+Servo: 115 grados*/
+else if (adc <=490)
+{  
+  strcpy(color, "VIOLETA");
+angulo = ANG_VIOLETA;
+rojo = 75;
+verde = 0;
+azul = 130;
+}
+
+/*VERDE MANZANA
+Color 1
+ADC real: 539 - 552
+Rango: 491 - 562
+RGB: 124, 252, 0
+Servo: 25 grados*/
+else if (adc <=562)
+{
+  strcpy(color, "VERDE MANZANA");
+angulo = ANG_VERDE;
+rojo = 124;
+verde = 252;
+azul = 0;
+}
+
+/*NARANJA
+Color 2
+ADC real: 573 - 577
+Rango: 563 - 639
+RGB: 255 , 69, 0
+Servo: 65 grados*/
+else if (adc <= 639)
+{
+  strcpy(color, "NARANJA");
+angulo = ANG_NARANJA;
+rojo = 255;
+verde = 69;
+azul = 0;
+}
+
+/*BLANCO
+Color 4
+ADC real = 701 - 707
+Rango: 640 - 1023
+RGB: 255, 255, 255
+Servo: 155 grados*/
+else
+{
+  strcpy(color, "BLANCO");
+angulo = ANG_BLANCO;
+rojo = 255;
+verde = 255;
+azul = 255;
+}
+
+/*MOSTRAR COLOR EN TIRA RGB*/
+WS_mostrar(
+rojo,
+verde,
+azul
+);
+
+/*MOVER SERVOMOTOR*/
+Servo_angle(angulo);
+
+/*MOSTRAR EN LCD*/
+if (adc <= 355)
+{
+itoa(adc, textoADC, 10);
+/*Primera linea*/
+twi_lcd_cmd(0x80);
+twi_lcd_msg("SIN OBJETO");
+/*Segunda linea*/
+twi_lcd_cmd(0xC0);
+twi_lcd_msg("ADC:");
+twi_lcd_msg("       ");
+}
+else
+{
+LCD_mostrar(
+adc,
+color,
+angulo
+);
+}
+
+/*MOSTRAR POR UART*/
+itoa(adc, textoADC, 10);
+itoa(angulo, textoAngulo, 10);
+USART_string("ADC: ");
+USART_string(textoADC);
+USART_string(" Color: ");
+USART_string(color);
+USART_string(" Servo: ");
+USART_string(textoAngulo);
+USART_string(" grados\r\n");
+
+/*Esperar antes de nueva medicion*/
+_delay_ms(500);
+}
+return 0;
+}
