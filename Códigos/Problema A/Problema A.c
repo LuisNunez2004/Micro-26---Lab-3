@@ -1,7 +1,7 @@
 #define F_CPU 16000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
+#include <util/delay_basic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,24 +15,34 @@
 #define HEATER_PORT  PORTD
 #define HEATER_BIT   PD2
 
-#define ACC_CALEFACTOR   0
-#define ACC_NEUTRO       1
-#define ACC_VENT_BAJO    2
-#define ACC_VENT_MEDIO   3
-#define ACC_VENT_ALTO    4
+#define ACC_CALEFACTOR    0
+#define ACC_NEUTRO        1
+#define ACC_VENT_BAJO     2
+#define ACC_VENT_MEDIO    3
+#define ACC_VENT_ALTO     4
 
 #define PM_MIN 5
-#define PM_MAX 50
+#define PM_MAX 45
 #define RX_BUF_LEN 16
 
 #define EST_MONITOREO     0
 #define EST_MENU          1
 #define EST_ESPERA_VALOR  2
 
-#define LCD_ADDR  0x27      
-#define LCD_RS    0x01
-#define LCD_EN    0x04
-#define LCD_BL    0x08      
+#define LCD_ADDR  0x3E  
+
+/* Retardos independientes del nivel de optimizacion (Proteus con -O0) */
+static void retardo_us(uint16_t us) {
+    if (us == 0) return;
+    _delay_loop_2((uint16_t)(us * (F_CPU / 4000000UL)));
+}
+
+static void retardo_ms(uint16_t ms) {
+    while (ms--) retardo_us(1000);
+}
+
+#define _delay_us(x) retardo_us(x)
+#define _delay_ms(x) retardo_ms(x)
 
 volatile uint16_t ms_counter = 0;
 volatile uint8_t  medir_flag = 0;
@@ -73,12 +83,13 @@ static uint8_t wait_level(uint8_t level, uint8_t timeout_us) {
 uint8_t DHT22_read(int16_t *temp10, uint16_t *hum10) {
     uint8_t data[5] = {0, 0, 0, 0, 0};
 
-    DHT_DDR  |=  (1 << DHT_BIT);    
-    DHT_PORT &= ~(1 << DHT_BIT);    
-    _delay_ms(2);
+    DHT_DDR  |=  (1 << DHT_BIT);
+    DHT_PORT &= ~(1 << DHT_BIT);
+    _delay_ms(20);
 
-    cli();                          
-    DHT_DDR &= ~(1 << DHT_BIT);     
+    DHT_DDR  &= ~(1 << DHT_BIT);
+    DHT_PORT |=  (1 << DHT_BIT);  
+    cli();     
 
     if (!wait_level(0, 100)) { sei(); return 1; }
     if (!wait_level(1, 100)) { sei(); return 1; }
@@ -86,9 +97,9 @@ uint8_t DHT22_read(int16_t *temp10, uint16_t *hum10) {
 
     for (uint8_t i = 0; i < 40; i++) {
         if (!wait_level(1, 70)) { sei(); return 2; }  
-        _delay_us(40);                                
+        _delay_us(40);                              
         if ((DHT_PINR >> DHT_BIT) & 1) {
-            data[i / 8] |= (1 << (7 - (i % 8)));      
+            data[i / 8] |= (1 << (7 - (i % 8)));     
         }
         if (!wait_level(0, 70)) { sei(); return 2; }  
     }
@@ -96,21 +107,19 @@ uint8_t DHT22_read(int16_t *temp10, uint16_t *hum10) {
 
     if ((uint8_t)(data[0] + data[1] + data[2] + data[3]) != data[4]) return 3;
 
-    *hum10 = ((uint16_t)data[0] << 8) | data[1];
-    int16_t t = ((uint16_t)(data[2] & 0x7F) << 8) | data[3];
-    if (data[2] & 0x80) t = -t;              
-    *temp10 = t;
+    *hum10 = (uint16_t)data[0] * 10 + data[1];
+    *temp10 = (int16_t)data[2] * 10 + data[3];
     return 0;
 }
 
 void Timer0_init(void) {
     TCCR0A = (1 << WGM01);                
-    TCCR0B = (1 << CS01) | (1 << CS00);   
+    TCCR0B = (1 << CS01) | (1 << CS00);    
     OCR0A  = 249;                         
-    TIMSK0 = (1 << OCIE0A);               
+    TIMSK0 = (1 << OCIE0A);                
 }
 
-ISR(TIMER0_COMPA_vect) {                  
+ISR(TIMER0_COMPA_vect) {                 
     if (++ms_counter >= PERIODO_MS) {
         ms_counter = 0;
         medir_flag = 1;
@@ -119,7 +128,7 @@ ISR(TIMER0_COMPA_vect) {
 
 void PWM_init(void) {
     TCCR1A = (1 << COM1A1) | (1 << WGM11);                
-    TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS11);   
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS11);    
     ICR1   = 1999;                                        
     OCR1A  = 0;
     DDRB  |= (1 << DDB1);
@@ -179,7 +188,6 @@ void Linea_procesar(void) {
     char msg[100];
 
     switch (estado_ui) {
-
     case EST_MONITOREO:
         if (rx_buf[0] == 'm' || rx_buf[0] == 'M') {
             estado_ui = EST_MENU;
@@ -217,14 +225,13 @@ void Linea_procesar(void) {
         } else {
             int16_t v = atoi(rx_buf);
             if (v > PM_MAX) {
-                sprintf(msg, "RECHAZADO: %d C queda muy cerca del maximo del sensor (80 C). Maximo: %d C.\r\n", v, PM_MAX);
+                sprintf(msg, "RECHAZADO: %d C muy alto. Maximo: %d C.\r\n", v, PM_MAX);
                 UART_sendString(msg);
             } else if (v < PM_MIN) {
                 sprintf(msg, "RECHAZADO: minimo permitido %d C.\r\n", PM_MIN);
                 UART_sendString(msg);
             } else {
                 punto_medio = (int8_t)v;
-                LCD_actualizar(ultima_temp10, hay_lectura);
                 sprintf(msg, "Punto medio actualizado a %d C\r\n", punto_medio);
                 UART_sendString(msg);
                 if (hay_lectura) {
@@ -240,11 +247,9 @@ void Linea_procesar(void) {
     }
 }
 
-
 void UART_poll(void) {
     while (UCSR0A & (1 << RXC0)) {
         char c = UDR0;
-
         if (c == '\r' || c == '\n') {
             if (rx_idx > 0) {                 
                 rx_buf[rx_idx] = '\0';
@@ -257,133 +262,84 @@ void UART_poll(void) {
                 rx_idx--;
                 UART_sendString("\b \b");
             }
-        } else if (rx_idx < RX_BUF_LEN - 1) { 
+        } else if (rx_idx < RX_BUF_LEN - 1) {  
             rx_buf[rx_idx++] = c;
             UART_sendChar(c);                 
         }
     }
 }
 
-/* ---------- I2C (TWI) ---------- */
+/* ---------- LCD ST7032 vía I2C ---------- */
 
-void TWI_init(void) {
-    TWSR = 0;           
-    TWBR = 72;          
+void I2C_init(void) {
+    TWSR = 0x00;  
+    TWBR = 72;    
+    TWCR = (1 << TWEN);
 }
 
-uint8_t lcd_err = 0;     
-
-static uint8_t TWI_wait(void) {
-    uint16_t n = 60000;
-    while (!(TWCR & (1 << TWINT))) {
-        if (--n == 0) return 0;          
-    }
-    return 1;
-}
-
-uint8_t TWI_start(void) {
+void I2C_start(void) {
     TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
-    if (!TWI_wait()) return 0xFF;
-    return TWSR & 0xF8;
+    while (!(TWCR & (1 << TWINT)));
 }
 
-uint8_t TWI_write(uint8_t data) {
+void I2C_write(uint8_t data) {
     TWDR = data;
     TWCR = (1 << TWINT) | (1 << TWEN);
-    if (!TWI_wait()) return 0xFF;
-    return TWSR & 0xF8;
+    while (!(TWCR & (1 << TWINT)));
 }
 
-void TWI_stop(void) {
-    TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
-    uint16_t n = 2000;
-    while ((TWCR & (1 << TWSTO)) && --n);   
+void I2C_stop(void) {
+    TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
 }
 
-static uint8_t START_ok(uint8_t st) {
-    return (st == 0x08 || st == 0x10);
+void LCD_command(uint8_t cmd) {
+    I2C_start();
+    I2C_write((LCD_ADDR << 1) | 0); 
+    I2C_write(0x00);             
+    I2C_write(cmd);
+    I2C_stop();
+    _delay_ms(2);
 }
 
-void I2C_scan(void) {
-    char msg[40];
-    uint8_t n = 0;
-    for (uint8_t addr = 1; addr < 127; addr++) {
-        uint8_t s  = TWI_start();
-        uint8_t ok = START_ok(s);
-        uint8_t st = ok ? TWI_write(addr << 1) : s;
-        TWI_stop();
-        if (st == 0x18) {
-            sprintf(msg, "I2C: dispositivo en 0x%02X\r\n", addr);
-            UART_sendString(msg);
-            n++;
-        } else if (!ok) {
-            sprintf(msg, "I2C: fallo el START (estado 0x%02X)\r\n", s);
-            UART_sendString(msg);
-            return;
-        }
-    }
-    if (n == 0) UART_sendString("I2C: no respondio ningun dispositivo\r\n");
-}
-
-static void PCF_write(uint8_t b) {
-    if (lcd_err) return;
-    uint8_t err = 0;
-    uint8_t st = TWI_start();
-    if (!START_ok(st)) err = st ? st : 0xEE;
-    else {
-        st = TWI_write(LCD_ADDR << 1);
-        if (st != 0x18) err = st ? st : 0xEE;
-        else {
-            st = TWI_write(b);
-            if (st != 0x28) err = st ? st : 0xEE;
-        }
-    }
-    TWI_stop();
-    if (err) lcd_err = err;
-}
-
-/* ---------- LCD 16x2 vía PCF8574 ---------- */
-
-
-static void LCD_nibble(uint8_t nib, uint8_t rs) {
-    uint8_t d = (uint8_t)(nib << 4) | LCD_BL | (rs ? LCD_RS : 0);
-    PCF_write(d | LCD_EN);      
-    _delay_us(1);
-    PCF_write(d & ~LCD_EN);     
-    _delay_us(50);
-}
-
-static void LCD_send(uint8_t v, uint8_t rs) {
-    LCD_nibble(v >> 4, rs);     
-    LCD_nibble(v & 0x0F, rs);   
-}
-
-void LCD_cmd(uint8_t c) {
-    LCD_send(c, 0);
-    if (c <= 0x03) _delay_ms(2);    
+void LCD_data(uint8_t data) {
+    I2C_start();
+    I2C_write((LCD_ADDR << 1) | 0);
+    I2C_write(0x40); 
+    I2C_write(data);
+    I2C_stop();
 }
 
 void LCD_init(void) {
-    TWI_init();
-    _delay_ms(50);              
-    LCD_nibble(0x03, 0); _delay_ms(5);
-    LCD_nibble(0x03, 0); _delay_us(150);
-    LCD_nibble(0x03, 0); _delay_us(150);
-    LCD_nibble(0x02, 0);        
-    LCD_cmd(0x28);              
-    LCD_cmd(0x0C);              
-    LCD_cmd(0x06);              
-    LCD_cmd(0x01);              
+    _delay_ms(50);
+    LCD_command(0x38); 
+    LCD_command(0x39); 
+    LCD_command(0x14); 
+    LCD_command(0x70); 
+    LCD_command(0x56); 
+    LCD_command(0x6C); 
+    _delay_ms(200);
+    LCD_command(0x38); 
+    LCD_command(0x0C); 
+    LCD_command(0x01); 
+    _delay_ms(2);
 }
 
-void LCD_setCursor(uint8_t col, uint8_t row) {
-    LCD_cmd(0x80 | (col + (row ? 0x40 : 0x00)));
+void LCD_setCursor(uint8_t row, uint8_t col) {
+    uint8_t address = (row == 0) ? (0x00 + col) : (0x40 + col);
+    LCD_command(0x80 | address);
+}
+
+void LCD_print(const char *str) {
+    while (*str) {
+        LCD_data((uint8_t)*str);
+        str++;
+    }
 }
 
 void LCD_linea(const char *texto) {
-    uint8_t n = 0;
-    while (*texto && n < 16) { LCD_send(*texto++, 1); n++; }
-    while (n < 16)           { LCD_send(' ', 1);      n++; }
+    char buffer[17];
+    snprintf(buffer, sizeof(buffer), "%-16s", texto);
+    LCD_print(buffer);
 }
 
 void LCD_actualizar(int16_t t10, uint8_t ok) {
@@ -397,7 +353,7 @@ void LCD_actualizar(int16_t t10, uint8_t ok) {
     }
     LCD_linea(l);
 
-    LCD_setCursor(0, 1);
+    LCD_setCursor(1, 0);
     sprintf(l, "PM:%d Rng:%d-%d", punto_medio, punto_medio - 5, punto_medio + 5);
     LCD_linea(l);
 }
@@ -408,32 +364,23 @@ int main(void) {
     uint16_t hum10;
     uint8_t errores_seguidos = 0;
 
-#ifdef TEST_FORZADO
-    const int16_t pruebas[] = {100, 200, 300, 400, 500};
-    uint8_t idx = 0;
-#endif
-
     HEATER_DDR |= (1 << HEATER_BIT);
     Calefactor_set(0);
     PWM_init();
     UART_init(103);
     Timer0_init();
     sei();
-    UART_sendString("Parte 4: menu (escribe 'm' para abrirlo)\r\n");
 
-    TWI_init();
-    //I2C_scan();                          
+    UART_sendString("Sistema Iniciando...\r\n");
+
+    I2C_init();
     LCD_init();
-    if (lcd_err) {
-        sprintf(buf, "LCD: error I2C 0x%02X\r\n", lcd_err);
-        UART_sendString(buf);
-    } else {
-        UART_sendString("LCD: init OK\r\n");
-    }
-    LCD_setCursor(0, 0);
-    LCD_linea("Iniciando...");
+    _delay_ms(500);
 
+    LCD_setCursor(0, 0);
+    LCD_print("Iniciando...");
     _delay_ms(2000);
+
     cli(); ms_counter = 0; sei();
     medir_flag = 1;
 
@@ -443,13 +390,7 @@ int main(void) {
             muestra++;
             dat[0] = '\0';
 
-#ifdef TEST_FORZADO
-            temp10 = pruebas[idx];
-            idx = (idx + 1) % 5;
-            uint8_t err = 0;
-#else
             uint8_t err = DHT22_read(&temp10, &hum10);
-#endif
 
             if (err == 0) {
                 errores_seguidos = 0;
@@ -469,16 +410,16 @@ int main(void) {
                     Calefactor_set(0);
                     Ventilador_set(0);
                 }
-                sprintf(buf, "Error DHT22: %d (consecutivos: %d)\r\n", err, errores_seguidos);
+                sprintf(buf, "Error DHT: %d (consecutivos: %d)\r\n", err, errores_seguidos);
                 LCD_actualizar(0, 0);
             }
 
             if (estado_ui == EST_MONITOREO) {
                 UART_sendString(buf);
-                UART_sendString(dat);  
+                if (dat[0] != '\0') UART_sendString(dat);  
             }
         }
 
-        UART_poll();                             
+        UART_poll();                       
     }
 }
