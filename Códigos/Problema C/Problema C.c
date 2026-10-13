@@ -31,6 +31,24 @@ UART          -> 9600 buad
 #define ANG_VIOLETA 115
 #define ANG_BLANCO  155
 
+/*== COLORES PARA TIRA WS2812 ==*/
+
+#define RGB_VIOLETA_R  75
+#define RGB_VIOLETA_G   0
+#define RGB_VIOLETA_B 130
+
+#define RGB_VERDE_R    124
+#define RGB_VERDE_G    252
+#define RGB_VERDE_B      0
+
+#define RGB_NARANJA_R  255
+#define RGB_NARANJA_G   69
+#define RGB_NARANJA_B    0
+
+#define RGB_BLANCO_R   255
+#define RGB_BLANCO_G   255
+#define RGB_BLANCO_B   255
+
 /*==TIRA LED WS2812 - DIN -> D6/PD6==*/
 #define WS_PORT PORTD
 #define WS_DDR DDRD
@@ -351,9 +369,9 @@ else if (adc <=598)
 {  
   strcpy(color, "VIOLETA");
 angulo = ANG_VIOLETA;
-rojo = 75;
-verde = 0;
-azul = 130;
+rojo = RGB_VIOLETA_R;
+verde = RGB_VIOLETA_G;
+azul = RGB_VIOLETA_B;
 }
 
 /*VERDE MANZANA
@@ -366,9 +384,9 @@ else if (adc <=646)
 {
   strcpy(color, "VERDE MANZANA");
 angulo = ANG_VERDE;
-rojo = 124;
-verde = 252;
-azul = 0;
+rojo = RGB_VERDE_R;
+verde = RGB_VERDE_G;
+azul = RGB_VERDE_B;
 }
 
 /*NARANJA
@@ -381,9 +399,9 @@ else if (adc <= 705)
 {
   strcpy(color, "NARANJA");
 angulo = ANG_NARANJA;
-rojo = 255;
-verde = 69;
-azul = 0;
+rojo = RGB_NARANJA_R;
+verde = RGB_NARANJA_G;
+azul = RGB_NARANJA_B;
 }
 
 /*BLANCO
@@ -396,9 +414,9 @@ else
 {
   strcpy(color, "BLANCO");
 angulo = ANG_BLANCO;
-rojo = 255;
-verde = 255;
-azul = 255;
+rojo = RGB_BLANCO_R;
+verde = RGB_BLANCO_G;
+azul = RGB_BLANCO_B;
 }
 
 /*MOSTRAR COLOR EN TIRA RGB*/
