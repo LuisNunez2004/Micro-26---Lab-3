@@ -254,39 +254,32 @@ void Servo_angle(uint8_t angulo)
 
 /*==MOSTRAR DATOS EN LCD==*/
 void LCD_mostrar(uint16_t adc,
-                 char *color,
+                 const char *color,
                  uint8_t angulo)
 {
     char textoADC[8];
     char textoAngulo[8];
 
     itoa(adc, textoADC, 10);
-
     itoa(angulo, textoAngulo, 10);
 
-
     /* Primera linea */
+    twi_lcd_cmd(0x80);
+    twi_lcd_msg("                ");
 
     twi_lcd_cmd(0x80);
-
     twi_lcd_msg("ADC:");
-
     twi_lcd_msg(textoADC);
 
-    twi_lcd_msg("          ");
-
-
     /* Segunda linea */
+    twi_lcd_cmd(0xC0);
+    twi_lcd_msg("                ");
 
     twi_lcd_cmd(0xC0);
-
     twi_lcd_msg(color);
-
     twi_lcd_msg(" A:");
-
     twi_lcd_msg(textoAngulo);
 
-    twi_lcd_msg("      ");
 }
 
 /*==PROGRAMA PRINCIPAL==*/
@@ -391,7 +384,7 @@ RGB: 124, 252, 0
 Servo: 25 grados */
 else if (adc <= 646)
 {
-    strcpy(color, "VERDE MANZANA");
+    strcpy(color, "V.MANZANA");
 
     angulo = ANG_VERDE;
     referencia = 628;
