@@ -328,11 +328,11 @@ while (1)
 adc = ADC_promedio();
 
 /*SIN OBJETO
-Valor medio: ADC: 273-274
-Rango utilizado: 0 - 355
+Valor de referencia: ADC=542
+Rango utilizado: 0 - 555
 Servo: 90 grados
 RGB apagado*/
-if (adc <= 355)
+if (adc <= 555)
 {
 strcpy(color, "SIN OBJETO");
 angulo = ANG_ESPERA;
@@ -343,11 +343,11 @@ azul = 0;
 
 /*VIOLETA
 Color 3
-ADC real: 436 - 441
-Rango: 356 - 490
+ADC de referencia: 568
+Rango: 556 - 598
 RGB: 75 , 0 , 130
 Servo: 115 grados*/
-else if (adc <=490)
+else if (adc <=598)
 {  
   strcpy(color, "VIOLETA");
 angulo = ANG_VIOLETA;
@@ -358,11 +358,11 @@ azul = 130;
 
 /*VERDE MANZANA
 Color 1
-ADC real: 539 - 552
-Rango: 491 - 562
+ADC de referencia: 628
+Rango: 599 - 646
 RGB: 124, 252, 0
 Servo: 25 grados*/
-else if (adc <=562)
+else if (adc <=646)
 {
   strcpy(color, "VERDE MANZANA");
 angulo = ANG_VERDE;
@@ -373,11 +373,11 @@ azul = 0;
 
 /*NARANJA
 Color 2
-ADC real: 573 - 577
-Rango: 563 - 639
+ADC de referencia: 665
+Rango: 647 - 705
 RGB: 255 , 69, 0
 Servo: 65 grados*/
-else if (adc <= 639)
+else if (adc <= 705)
 {
   strcpy(color, "NARANJA");
 angulo = ANG_NARANJA;
@@ -388,8 +388,8 @@ azul = 0;
 
 /*BLANCO
 Color 4
-ADC real = 701 - 707
-Rango: 640 - 1023
+ADC de referencia: 746
+Rango: 706 - 1023
 RGB: 255, 255, 255
 Servo: 155 grados*/
 else
@@ -412,7 +412,7 @@ azul
 Servo_angle(angulo);
 
 /*MOSTRAR EN LCD*/
-if (adc <= 355)
+if (adc <= 555)
 {
 itoa(adc, textoADC, 10);
 /*Primera linea*/
