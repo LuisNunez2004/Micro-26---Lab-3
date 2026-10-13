@@ -300,6 +300,11 @@ int main(void)
   char color[12];
   char textoADC[8];
   char textoAngulo[8];
+  uint16_t referencia;
+uint16_t diferencia_ref;
+
+char textoReferencia[8];
+char textoDiferencia[8];
 
 /*INICIALIZAR ADC*/
 ADC_init();
@@ -350,6 +355,7 @@ Valor de referencia: ADC=542
 Rango utilizado: 0 - 555
 Servo: 90 grados
 RGB apagado*/
+  referncia = 542;
 if (adc <= 555)
 {
 strcpy(color, "SIN OBJETO");
@@ -365,6 +371,7 @@ ADC de referencia: 568
 Rango: 556 - 598
 RGB: 75 , 0 , 130
 Servo: 115 grados*/
+  referencia = 568;
 else if (adc <=598)
 {  
   strcpy(color, "VIOLETA");
@@ -380,6 +387,7 @@ ADC de referencia: 628
 Rango: 599 - 646
 RGB: 124, 252, 0
 Servo: 25 grados*/
+referencia = 628;
 else if (adc <=646)
 {
   strcpy(color, "VERDE MANZANA");
@@ -395,6 +403,7 @@ ADC de referencia: 665
 Rango: 647 - 705
 RGB: 255 , 69, 0
 Servo: 65 grados*/
+  referencia = 665;
 else if (adc <= 705)
 {
   strcpy(color, "NARANJA");
@@ -410,6 +419,7 @@ ADC de referencia: 746
 Rango: 706 - 1023
 RGB: 255, 255, 255
 Servo: 155 grados*/
+  referencia = 746;
 else
 {
   strcpy(color, "BLANCO");
@@ -418,7 +428,15 @@ rojo = RGB_BLANCO_R;
 verde = RGB_BLANCO_G;
 azul = RGB_BLANCO_B;
 }
-
+  if (adc >= referencia)
+  {
+    diferencia_ref = adc - referencia;
+  }
+  else
+  {
+    diferencia_ref = referencia - adc;
+  }
+  
 /*MOSTRAR COLOR EN TIRA RGB*/
 WS_mostrar(
 rojo,
@@ -433,13 +451,21 @@ Servo_angle(angulo);
 if (adc <= 555)
 {
 itoa(adc, textoADC, 10);
+itoa(referencia, textoReferencia, 10);
+itoa(diferencia_ref, textoDiferencia, 10);
 /*Primera linea*/
 twi_lcd_cmd(0x80);
-twi_lcd_msg("SIN OBJETO");
+twi_lcd_msg("                ");
+twi_lcd_cmd(0x80);
+twi_lcd_msg("ADC:");
+twi_lcd_msg(textoADC);
 /*Segunda linea*/
 twi_lcd_cmd(0xC0);
-twi_lcd_msg("ADC:");
-twi_lcd_msg("       ");
+twi_lcd_msg("                ");
+twi_lcd_cmd(0xC0);
+twi_lcd_msg(color);
+twi_lcd_msg(" A:");
+twi_lcd_msg(textoAngulo);
 }
 else
 {
@@ -453,12 +479,24 @@ angulo
 /*MOSTRAR POR UART*/
 itoa(adc, textoADC, 10);
 itoa(angulo, textoAngulo, 10);
+itoa(referencia, textoReferencia, 10);
+itoa(diferencia_ref, textoDiferencia, 10);
+  
 USART_string("ADC: ");
 USART_string(textoADC);
+
 USART_string(" Color: ");
 USART_string(color);
+
+USART_string(" Ref: ");
+USART_string(textoReferencia);
+
+USART_string(" Dif: ");
+USART_string(textoDiferencia);
+
 USART_string(" Servo: ");
 USART_string(textoAngulo);
+
 USART_string(" grados\r\n");
 
 /*Esperar antes de nueva medicion*/
