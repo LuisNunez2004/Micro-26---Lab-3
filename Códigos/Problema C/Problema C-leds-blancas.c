@@ -33,17 +33,17 @@ UART          -> 9600 buad
 
 /*== COLORES PARA TIRA WS2812 ==*/
 
-#define RGB_VIOLETA_R  75
-#define RGB_VIOLETA_G   0
-#define RGB_VIOLETA_B 130
+#define RGB_VIOLETA_R  255
+#define RGB_VIOLETA_G   69
+#define RGB_VIOLETA_B 0
 
-#define RGB_VERDE_R    124
-#define RGB_VERDE_G    252
-#define RGB_VERDE_B      0
+#define RGB_VERDE_R    75
+#define RGB_VERDE_G    0
+#define RGB_VERDE_B    130
 
 #define RGB_NARANJA_R  255
-#define RGB_NARANJA_G   69
-#define RGB_NARANJA_B    0
+#define RGB_NARANJA_G  1
+#define RGB_NARANJA_B  0
 
 #define RGB_BLANCO_R   255
 #define RGB_BLANCO_G   255
