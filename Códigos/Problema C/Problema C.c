@@ -434,60 +434,40 @@ else
     verde = RGB_BLANCO_G;
     azul = RGB_BLANCO_B;
 }
-  if (adc >= referencia)
-  {
-    diferencia_ref = adc - referencia;
-  }
-  else
-  {
-    diferencia_ref = referencia - adc;
-  }
-  
-/*MOSTRAR COLOR EN TIRA RGB*/
-WS_mostrar(
-rojo,
-verde,
-azul
-);
-
-/*MOVER SERVOMOTOR*/
-Servo_angle(angulo);
-
-/*MOSTRAR EN LCD*/
-if (adc <= 555)
+/* CALCULAR DIFERENCIA */
+if (adc >= referencia)
 {
-itoa(adc, textoADC, 10);
-itoa(referencia, textoReferencia, 10);
-itoa(diferencia_ref, textoDiferencia, 10);
-/*Primera linea*/
-twi_lcd_cmd(0x80);
-twi_lcd_msg("                ");
-twi_lcd_cmd(0x80);
-twi_lcd_msg("ADC:");
-twi_lcd_msg(textoADC);
-/*Segunda linea*/
-twi_lcd_cmd(0xC0);
-twi_lcd_msg("                ");
-twi_lcd_cmd(0xC0);
-twi_lcd_msg(color);
-twi_lcd_msg(" A:");
-twi_lcd_msg(textoAngulo);
+    diferencia_ref = adc - referencia;
 }
 else
 {
-LCD_mostrar(
-adc,
-color,
-angulo
-);
+    diferencia_ref = referencia - adc;
 }
 
-/*MOSTRAR POR UART*/
+/* MOSTRAR COLOR EN TIRA RGB */
+WS_mostrar(
+    rojo,
+    verde,
+    azul
+);
+
+/* MOVER SERVOMOTOR */
+Servo_angle(angulo);
+
+/* MOSTRAR EN LCD */
+LCD_mostrar(
+    adc,
+    color,
+    angulo
+);
+
+/* CONVERTIR VALORES A TEXTO */
 itoa(adc, textoADC, 10);
 itoa(angulo, textoAngulo, 10);
 itoa(referencia, textoReferencia, 10);
 itoa(diferencia_ref, textoDiferencia, 10);
-  
+
+/* MOSTRAR POR UART */
 USART_string("ADC: ");
 USART_string(textoADC);
 
@@ -505,7 +485,7 @@ USART_string(textoAngulo);
 
 USART_string(" grados\r\n");
 
-/*Esperar antes de nueva medicion*/
+/* Esperar antes de nueva medicion */
 _delay_ms(500);
 }
 return 0;
