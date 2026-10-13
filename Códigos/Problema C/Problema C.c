@@ -263,23 +263,24 @@ void LCD_mostrar(uint16_t adc,
     itoa(adc, textoADC, 10);
     itoa(angulo, textoAngulo, 10);
 
-    /* Primera linea */
+    /* Limpiar primera linea */
     twi_lcd_cmd(0x80);
     twi_lcd_msg("                ");
 
+    /* Mostrar ADC */
     twi_lcd_cmd(0x80);
     twi_lcd_msg("ADC:");
     twi_lcd_msg(textoADC);
 
-    /* Segunda linea */
+    /* Limpiar segunda linea */
     twi_lcd_cmd(0xC0);
     twi_lcd_msg("                ");
 
+    /* Mostrar color y angulo */
     twi_lcd_cmd(0xC0);
     twi_lcd_msg(color);
     twi_lcd_msg(" A:");
     twi_lcd_msg(textoAngulo);
-
 }
 
 /*==PROGRAMA PRINCIPAL==*/
@@ -340,7 +341,11 @@ _delay_ms(5);
 /*==BUCLE PRINCIPAL==*/
 while (1)
 {
-/*Leer la fotocelda - se promedian 10 mediciones para mejorar estabilidad*/
+/* Apagar la tira antes de medir para que no altere la fotocelda */
+WS_mostrar(0, 0, 0);
+_delay_ms(50);
+
+/* Leer la fotocelda */
 adc = ADC_promedio();
 
 /* SIN OBJETO
