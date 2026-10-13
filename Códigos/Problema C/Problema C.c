@@ -1,5 +1,6 @@
 #define F_CPU 16000000UL
 #define BAUD 9600
+#define MYUBRR ((F_CPU / 16 / BAUD)-1)
 /* Direccion I2C del LCD */
 #define PCF8574 0x27
 
@@ -39,7 +40,7 @@ UART          -> 9600 buad
 #define NUM_PIXELS 10
 
 /*==ENVIAR UN BIT A LA TIRA RGB==*/
-static inline_attribute_((always_inline))
+static inline __attribute__((always_inline))
 void WS_bit(uint8_t bit)
 {
   if (bit)
@@ -98,9 +99,9 @@ else
  }
 }
 /*==ENVIAR BYTE==*/
-void WS_byte(uint8 dato)
+void WS_byte(uint8_t dato)
 {
-  for (unit8_t i= 0; i < 8; i++)
+  for (uint8_t i= 0; i < 8; i++)
   { 
     WS_bit(dato & 0x80);
     dato <<= 1;
@@ -124,7 +125,7 @@ void WS_mostrar(uint8_t rojo,
 {
    uint8_t estado_interrupciones = SREG;
    cli();
-   for (uint8_t i = 0, i < NUM_PIXELS; i++)
+   for (uint8_t i = 0; i < NUM_PIXELS; i++)
    {
      WS_color(rojo, verde, azul);
    }
@@ -138,8 +139,8 @@ void ADC_init(void)
   /*Ref AVcc*/
   ADMUX = (1 << REFS0);
   /*ADC habilitado - Prescaler = 128*/
-  ADCDRA =
-   (1 << ADENN)|
+  ADCSRA =
+   (1 << ADEN)|
    (1 << ADPS2)|
    (1 << ADPS1)|
    (1 << ADPS0);
@@ -152,7 +153,7 @@ uint16_t ADC_read(uint8_t canal)
       (ADMUX & 0xF0)|
       (canal & 0x0F);
 /*Iniciar conversion*/
-ADSRA |= (1 << ADSC);
+ADCSRA |= (1 << ADSC);
 /*Esperar fin de conversion*/
 while (ADCSRA & (1 << ADSC));
 return ADC;
@@ -186,7 +187,7 @@ UCSR0C=
 /*==ENVIAR CARACTER UART==*/
 void USART_tx(char dato)
 {
-  while (!(UCSR0A & (1 << UDRE0));
+  while (!(UCSR0A & (1 << UDRE0)));
     UDR0 = dato;
 }
 
@@ -274,7 +275,7 @@ void LCD_mostrar(uint16_t adc,
 int main(void)
 {
   uint16_t adc;
-  uint8_t anfulo;
+  uint8_t angulo;
   uint8_t rojo;
   uint8_t verde;
   uint8_t azul;
@@ -283,7 +284,7 @@ int main(void)
   char textoAngulo[8];
 
 /*INICIALIZAR ADC*/
-ADC_int();
+ADC_init();
 
 /*INICIALIZAR UART*/
 USART_init(MYUBRR);
