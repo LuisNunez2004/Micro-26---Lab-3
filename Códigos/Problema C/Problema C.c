@@ -297,7 +297,7 @@ int main(void)
   uint8_t rojo;
   uint8_t verde;
   uint8_t azul;
-  char color[12];
+  char color[16];
   char textoADC[8];
   char textoAngulo[8];
   uint16_t referencia;
@@ -350,83 +350,89 @@ while (1)
 /*Leer la fotocelda - se promedian 10 mediciones para mejorar estabilidad*/
 adc = ADC_promedio();
 
-/*SIN OBJETO
-Valor de referencia: ADC=542
+/* SIN OBJETO
+Valor de referencia: ADC = 542
 Rango utilizado: 0 - 555
 Servo: 90 grados
-RGB apagado*/
-  referncia = 542;
+RGB apagado */
 if (adc <= 555)
 {
-strcpy(color, "SIN OBJETO");
-angulo = ANG_ESPERA;
-rojo = 0;
-verde = 0;
-azul = 0;
+    strcpy(color, "SIN OBJETO");
+
+    angulo = ANG_ESPERA;
+    referencia = 542;
+
+    rojo = 0;
+    verde = 0;
+    azul = 0;
 }
 
-/*VIOLETA
-Color 3
+/* VIOLETA
 ADC de referencia: 568
 Rango: 556 - 598
-RGB: 75 , 0 , 130
-Servo: 115 grados*/
-  referencia = 568;
-else if (adc <=598)
-{  
-  strcpy(color, "VIOLETA");
-angulo = ANG_VIOLETA;
-rojo = RGB_VIOLETA_R;
-verde = RGB_VIOLETA_G;
-azul = RGB_VIOLETA_B;
+RGB: 75, 0, 130
+Servo: 115 grados */
+else if (adc <= 598)
+{
+    strcpy(color, "VIOLETA");
+
+    angulo = ANG_VIOLETA;
+    referencia = 568;
+
+    rojo = RGB_VIOLETA_R;
+    verde = RGB_VIOLETA_G;
+    azul = RGB_VIOLETA_B;
 }
 
-/*VERDE MANZANA
-Color 1
+/* VERDE MANZANA
 ADC de referencia: 628
 Rango: 599 - 646
 RGB: 124, 252, 0
-Servo: 25 grados*/
-referencia = 628;
-else if (adc <=646)
+Servo: 25 grados */
+else if (adc <= 646)
 {
-  strcpy(color, "VERDE MANZANA");
-angulo = ANG_VERDE;
-rojo = RGB_VERDE_R;
-verde = RGB_VERDE_G;
-azul = RGB_VERDE_B;
+    strcpy(color, "VERDE MANZANA");
+
+    angulo = ANG_VERDE;
+    referencia = 628;
+
+    rojo = RGB_VERDE_R;
+    verde = RGB_VERDE_G;
+    azul = RGB_VERDE_B;
 }
 
-/*NARANJA
-Color 2
+/* NARANJA
 ADC de referencia: 665
 Rango: 647 - 705
-RGB: 255 , 69, 0
-Servo: 65 grados*/
-  referencia = 665;
+RGB: 255, 69, 0
+Servo: 65 grados */
 else if (adc <= 705)
 {
-  strcpy(color, "NARANJA");
-angulo = ANG_NARANJA;
-rojo = RGB_NARANJA_R;
-verde = RGB_NARANJA_G;
-azul = RGB_NARANJA_B;
+    strcpy(color, "NARANJA");
+
+    angulo = ANG_NARANJA;
+    referencia = 665;
+
+    rojo = RGB_NARANJA_R;
+    verde = RGB_NARANJA_G;
+    azul = RGB_NARANJA_B;
 }
 
-/*BLANCO
-Color 4
+/* BLANCO
 ADC de referencia: 746
 Rango: 706 - 1023
 RGB: 255, 255, 255
-Servo: 155 grados*/
-  referencia = 746;
+Servo: 155 grados */
 else
 {
-  strcpy(color, "BLANCO");
-angulo = ANG_BLANCO;
-rojo = RGB_BLANCO_R;
-verde = RGB_BLANCO_G;
-azul = RGB_BLANCO_B;
+    strcpy(color, "BLANCO");
+
+    angulo = ANG_BLANCO;
+    referencia = 746;
+
+    rojo = RGB_BLANCO_R;
+    verde = RGB_BLANCO_G;
+    azul = RGB_BLANCO_B;
 }
   if (adc >= referencia)
   {
